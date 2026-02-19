@@ -7,10 +7,10 @@
 #include <variant>
 #include <vector>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "file_system_service.h"
-#include "nlohmann/json.hpp"
+#include <nlohmann/json.hpp>
 #include "environment_setter.h"
 
 using namespace ::testing;

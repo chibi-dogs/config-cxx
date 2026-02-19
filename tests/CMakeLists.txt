@@ -1,9 +1,7 @@
-cmake_minimum_required(VERSION 3.22)
-project(${CMAKE_PROJECT_NAME}-UT CXX)
+find_package(GTest REQUIRED)
 
-include(CTest)
-
-set(CONFIG_CXX_UT_SOURCES
+enable_testing()
+add_executable(tests
     config_test.cpp
     config_directory_path_resolver_test.cpp
     json_config_loader_test.cpp
@@ -16,27 +14,20 @@ set(CONFIG_CXX_UT_SOURCES
     environment_setter_test.cpp
 )
 
-set(GTEST_INCLUDE_DIR
-    "${CMAKE_SOURCE_DIR}/externals/googletest/googletest/include")
-set(GMOCK_INCLUDE_DIR
-    "${CMAKE_SOURCE_DIR}/externals/googletest/googlemock/include")
-
-add_executable(${CMAKE_PROJECT_NAME}-UT ${CONFIG_CXX_UT_SOURCES})
-
-target_link_libraries(${CMAKE_PROJECT_NAME}-UT PRIVATE ${CMAKE_PROJECT_NAME} gmock_main nlohmann_json yaml-cpp pugixml)
-
-target_include_directories(
-    ${CMAKE_PROJECT_NAME}-UT
-    PRIVATE ${GTEST_INCLUDE_DIR}
-    ${GMOCK_INCLUDE_DIR}
-    ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}
+target_link_libraries(tests
+    PUBLIC
+    GTest::gtest_main
+    config-cxx
+    PRIVATE
+    nlohmann_json::nlohmann_json
 )
 
-add_test(
-    NAME ${CMAKE_PROJECT_NAME}-UT
-    COMMAND ${CMAKE_PROJECT_NAME}-UT
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+target_include_directories(tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+)
+
+include(GoogleTest)
+gtest_discover_tests(tests)
 
 if (CONFIG_CODE_COVERAGE)
     target_code_coverage(${CMAKE_PROJECT_NAME}-UT ALL)

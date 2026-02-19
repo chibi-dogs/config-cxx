@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.22)
 set(PROJECT_NAME config-cxx)
 project(${PROJECT_NAME} CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -32,20 +32,22 @@ set(SOURCES
 
 add_library(${LIBRARY_NAME} ${SOURCES})
 
-add_subdirectory(externals/json)
+find_package(yaml-cpp REQUIRED)
+find_package(nlohmann_json REQUIRED)
+find_package(pugixml REQUIRED)
 
-target_link_libraries(${LIBRARY_NAME} PRIVATE nlohmann_json)
-
-add_subdirectory(externals/yaml-cpp)
-target_link_libraries(${LIBRARY_NAME} PUBLIC  yaml-cpp)
-
-add_subdirectory(externals/pugixml)
-target_link_libraries(${LIBRARY_NAME} PUBLIC  pugixml)
+target_link_libraries(${LIBRARY_NAME} PUBLIC
+        yaml-cpp::yaml-cpp
+        pugixml::pugixml
+        PRIVATE
+        nlohmann_json::nlohmann_json
+)
 
 target_include_directories(
     ${LIBRARY_NAME}
-    INTERFACE "${CMAKE_CURRENT_LIST_DIR}/include"
-    PRIVATE "${CMAKE_CURRENT_LIST_DIR}/include")
+    PUBLIC "${CMAKE_CURRENT_LIST_DIR}/include"
+    PRIVATE "${CMAKE_CURRENT_LIST_DIR}/src"
+)
 
 if (CONFIG_CODE_COVERAGE)
     set(target_code_coverage_ALL 1)
@@ -55,7 +57,5 @@ if (CONFIG_CODE_COVERAGE)
 endif ()
 
 if (CONFIG_BUILD_TESTING)
-    add_subdirectory(externals/googletest)
-    enable_testing()
     add_subdirectory(tests)
 endif ()

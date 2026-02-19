@@ -4,7 +4,7 @@
 
 #include "config_provider.h"
 #include "file_system_service.h"
-#include "nlohmann/json.hpp"
+#include <nlohmann/json.hpp>
 
 namespace config
 {
