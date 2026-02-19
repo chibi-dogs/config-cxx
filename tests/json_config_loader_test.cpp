@@ -16,13 +16,13 @@
 using namespace ::testing;
 using namespace config;
 using namespace config::tests;
-using namespace config::filesystem;
+using namespace config::filesystem_utils;
 
 namespace
 {
 using ConfigValue = std::variant<std::nullptr_t, bool, int, double, std::string, float, std::vector<std::string>>;
 
-const auto projectRootPath = FileSystemService::getExecutablePath();
+const auto projectRootPath = getExecutablePath();
 const auto testConfigDirectory = projectRootPath.parent_path() / "testConfig";
 const auto testEnvConfigFilePath = testConfigDirectory / "test.json";
 const auto invalidConfigFilePath = testConfigDirectory / "invalid.json";

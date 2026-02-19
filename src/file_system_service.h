@@ -4,17 +4,13 @@
 #include <string>
 #include <vector>
 
-namespace config::filesystem
+namespace config::filesystem_utils
 {
-class FileSystemService
-{
-public:
-    static std::string read(const std::filesystem::path& absolutePath);
-    static bool exists(const std::filesystem::path& absolutePath);
-    static bool isDirectory(const std::filesystem::path& absolutePath);
-    static bool isRelative(const std::filesystem::path& path);
-    static std::filesystem::path getSystemRootPath();
-    static std::filesystem::path getCurrentWorkingDirectory();
-    static std::filesystem::path getExecutablePath();
+    std::string read(const std::filesystem::path& absolutePath);
+    [[nodiscard]] bool exists(const std::filesystem::path& absolutePath);
+    [[nodiscard]] bool isDirectory(const std::filesystem::path& absolutePath);
+    [[nodiscard]] bool isRelative(const std::filesystem::path& path);
+    std::filesystem::path getSystemRootPath();
+    std::filesystem::path getCurrentWorkingDirectory();
+    std::filesystem::path getExecutablePath();
 };
-}

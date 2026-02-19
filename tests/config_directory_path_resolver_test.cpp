@@ -10,11 +10,11 @@
 using namespace ::testing;
 using namespace config;
 using namespace config::tests;
-using namespace config::filesystem;
+using namespace config::filesystem_utils;
 
 namespace
 {
-const auto executablePath = FileSystemService::getExecutablePath();
+const auto executablePath = getExecutablePath();
 const auto configDirectoryFromExecutable = executablePath.parent_path() / "config";
 const auto configDirectory1RelativePath = "./customConfig1";
 const auto configDirectory1AbsolutePath = executablePath.parent_path() / "customConfig1";

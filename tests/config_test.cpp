@@ -15,11 +15,11 @@
 using namespace ::testing;
 using namespace config;
 using namespace config::tests;
-using namespace config::filesystem;
+using namespace config::filesystem_utils;
 
 namespace
 {
-const auto projectRootPath = FileSystemService::getExecutablePath();
+const auto projectRootPath = getExecutablePath();
 const auto fallbackConfigDirectory = projectRootPath.parent_path() / "config";
 const auto emptyConfigDirectory = projectRootPath.parent_path() / "emptyConfig";
 const auto testConfigDirectory = projectRootPath.parent_path() / "testConfig";

@@ -15,9 +15,9 @@
 #include <unistd.h>
 #endif
 
-namespace config::filesystem
+namespace config::filesystem_utils
 {
-std::string FileSystemService::read(const std::filesystem::path& absolutePath)
+std::string read(const std::filesystem::path& absolutePath)
 {
     std::ifstream fileStream{absolutePath};
 
@@ -33,27 +33,27 @@ std::string FileSystemService::read(const std::filesystem::path& absolutePath)
     return buffer.str();
 }
 
-bool FileSystemService::exists(const std::filesystem::path& absolutePath)
+bool exists(const std::filesystem::path& absolutePath)
 {
     return std::filesystem::exists(absolutePath);
 }
 
-bool FileSystemService::isDirectory(const std::filesystem::path& absolutePath)
+bool isDirectory(const std::filesystem::path& absolutePath)
 {
     return std::filesystem::is_directory(absolutePath);
 }
 
-bool FileSystemService::isRelative(const std::filesystem::path& path)
+bool isRelative(const std::filesystem::path& path)
 {
     return path.is_relative();
 }
 
-std::filesystem::path FileSystemService::getCurrentWorkingDirectory()
+std::filesystem::path getCurrentWorkingDirectory()
 {
     return std::filesystem::current_path();
 }
 
-std::filesystem::path FileSystemService::getSystemRootPath()
+std::filesystem::path getSystemRootPath()
 {
 #if defined(_WIN32)
     return std::filesystem::current_path().root_path();
@@ -62,7 +62,7 @@ std::filesystem::path FileSystemService::getSystemRootPath()
 #endif
 }
 
-std::filesystem::path FileSystemService::getExecutablePath()
+std::filesystem::path getExecutablePath()
 {
 #ifdef _WIN32
     wchar_t path[MAX_PATH] = {0};

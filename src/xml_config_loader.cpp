@@ -25,7 +25,7 @@ std::string normalizeConfigListKey(const std::string& key);
 void XmlConfigLoader::loadConfigFile(const std::filesystem::path& configFilePath,
                                      std::unordered_map<std::string, ConfigValue>& configValues)
 {
-    const auto configFileExists = filesystem::FileSystemService::exists(configFilePath);
+    const auto configFileExists = filesystem_utils::exists(configFilePath);
     if (!configFileExists)
     {
         return;

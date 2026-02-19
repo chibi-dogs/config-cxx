@@ -17,14 +17,14 @@ ConfigValue normalizeConfigValue(const nlohmann::json& jsonObject);
 void JsonConfigLoader::loadConfigFile(const std::filesystem::path& configFilePath,
                                       std::unordered_map<std::string, ConfigValue>& configValues)
 {
-    const auto configFileExists = filesystem::FileSystemService::exists(configFilePath);
+    const auto configFileExists = filesystem_utils::exists(configFilePath);
 
     if (!configFileExists)
     {
         return;
     }
 
-    const auto configJson = filesystem::FileSystemService::read(configFilePath);
+    const auto configJson = filesystem_utils::read(configFilePath);
 
     nlohmann::json config;
     try
@@ -51,14 +51,14 @@ void JsonConfigLoader::loadConfigFile(const std::filesystem::path& configFilePat
 void JsonConfigLoader::loadConfigEnvFile(const std::filesystem::path& configFilePath,
                                          std::unordered_map<std::string, ConfigValue>& configValues)
 {
-    const auto configFileExists = filesystem::FileSystemService::exists(configFilePath);
+    const auto configFileExists = filesystem_utils::exists(configFilePath);
 
     if (!configFileExists)
     {
         return;
     }
 
-    const auto configEnvironmentVariablesJson = filesystem::FileSystemService::read(configFilePath);
+    const auto configEnvironmentVariablesJson = filesystem_utils::read(configFilePath);
 
     nlohmann::json configEnvironmentVariables;
     try

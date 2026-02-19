@@ -7,11 +7,11 @@
 #include "gtest/gtest.h"
 
 using namespace ::testing;
-using namespace config::filesystem;
+using namespace config::filesystem_utils;
 
 namespace
 {
-const auto projectRootPath = FileSystemService::getExecutablePath();
+const auto projectRootPath = getExecutablePath();
 const auto testDirectoryPath = projectRootPath.parent_path() / "tests";
 const auto filesystemTestDirectoryPath = testDirectoryPath / "filesystemData";
 const auto testReadingFilePath = filesystemTestDirectoryPath / "testReading.txt";
@@ -42,61 +42,61 @@ TEST_F(FileSystemServiceTest, givenCorrectPath_shouldReturnContentOfFile)
 {
     const std::string expectedFileContent = "example data";
 
-    const auto actualFileContent = FileSystemService::read(testReadingFilePath);
+    const auto actualFileContent = read(testReadingFilePath);
 
     ASSERT_EQ(actualFileContent, expectedFileContent);
 }
 
 TEST_F(FileSystemServiceTest, givenIncorrectPath_shouldThrowException)
 {
-    ASSERT_THROW(FileSystemService::read(invalidPath), std::runtime_error);
+    ASSERT_THROW(read(invalidPath), std::runtime_error);
 }
 
 TEST_F(FileSystemServiceTest, givenCorrectPath_shouldReturnTrue)
 {
-    const auto exists = FileSystemService::exists(testDirectoryPath);
+    const auto exists = exists(testDirectoryPath);
 
     ASSERT_TRUE(exists);
 }
 
 TEST_F(FileSystemServiceTest, givenIncorrectPath_shouldReturnFalse)
 {
-    const auto exists = FileSystemService::exists(invalidPath);
+    const auto exists = exists(invalidPath);
 
     ASSERT_FALSE(exists);
 }
 
 TEST_F(FileSystemServiceTest, givenDirectoryPath_shouldReturnTrue)
 {
-    const auto isDirectory = FileSystemService::isDirectory(testDirectoryPath);
+    const auto isDirectory = isDirectory(testDirectoryPath);
 
     ASSERT_TRUE(isDirectory);
 }
 
 TEST_F(FileSystemServiceTest, givenInvalidPath_shouldReturnFalse)
 {
-    const auto isDirectory = FileSystemService::isDirectory(invalidPath);
+    const auto isDirectory = isDirectory(invalidPath);
 
     ASSERT_FALSE(isDirectory);
 }
 
 TEST_F(FileSystemServiceTest, shouldReturnCurrentWorkingDirectory)
 {
-    const auto currentWorkingDirectory = FileSystemService::getCurrentWorkingDirectory();
+    const auto currentWorkingDirectory = getCurrentWorkingDirectory();
 
     ASSERT_EQ(currentWorkingDirectory, std::filesystem::current_path());
 }
 
 TEST_F(FileSystemServiceTest, givenFilePath_shouldReturnFalseForIsDirectory)
 {
-    const auto isDirectory = FileSystemService::isDirectory(testReadingFilePath);
+    const auto isDirectory = isDirectory(testReadingFilePath);
 
     ASSERT_FALSE(isDirectory);
 }
 
 TEST_F(FileSystemServiceTest, getSystemRootPath_returnsValidPath)
 {
-    const auto rootPath = FileSystemService::getSystemRootPath();
+    const auto rootPath = getSystemRootPath();
 
     ASSERT_FALSE(rootPath.empty());
 #ifdef _WIN32
@@ -110,33 +110,33 @@ TEST_F(FileSystemServiceTest, isRelative_withRelativePath_returnsTrue)
 {
     const std::filesystem::path relativePath = "config/test.json";
     
-    ASSERT_TRUE(FileSystemService::isRelative(relativePath));
+    ASSERT_TRUE(isRelative(relativePath));
 }
 
 TEST_F(FileSystemServiceTest, isRelative_withAbsolutePath_returnsFalse)
 {
     const auto absolutePath = std::filesystem::absolute("config");
     
-    ASSERT_FALSE(FileSystemService::isRelative(absolutePath));
+    ASSERT_FALSE(isRelative(absolutePath));
 }
 
 TEST_F(FileSystemServiceTest, isRelative_withCurrentDirectory_returnsTrue)
 {
     const std::filesystem::path currentDir = ".";
     
-    ASSERT_TRUE(FileSystemService::isRelative(currentDir));
+    ASSERT_TRUE(isRelative(currentDir));
 }
 
 TEST_F(FileSystemServiceTest, isRelative_withParentDirectory_returnsTrue)
 {
     const std::filesystem::path parentDir = "..";
     
-    ASSERT_TRUE(FileSystemService::isRelative(parentDir));
+    ASSERT_TRUE(isRelative(parentDir));
 }
 
 TEST_F(FileSystemServiceTest, isRelative_withRootPath_returnsFalse)
 {
-    const auto rootPath = FileSystemService::getSystemRootPath();
+    const auto rootPath = getSystemRootPath();
     
-    ASSERT_FALSE(FileSystemService::isRelative(rootPath));
+    ASSERT_FALSE(isRelative(rootPath));
 }

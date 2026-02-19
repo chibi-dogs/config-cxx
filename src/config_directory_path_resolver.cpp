@@ -18,9 +18,9 @@ std::filesystem::path ConfigDirectoryPathResolver::getConfigDirectoryPath()
     {
         auto configDirectoryFsPath = std::filesystem::path{*configDirectoryEnvPath};
 
-        if (!filesystem::FileSystemService::isRelative(configDirectoryFsPath))
+        if (!filesystem_utils::isRelative(configDirectoryFsPath))
         {
-            if (!filesystem::FileSystemService::exists(configDirectoryFsPath))
+            if (!filesystem_utils::exists(configDirectoryFsPath))
             {
                 throw std::runtime_error("Config directory not found: CXX_CONFIG_DIR=" + *configDirectoryEnvPath);
             }
@@ -29,7 +29,7 @@ std::filesystem::path ConfigDirectoryPathResolver::getConfigDirectoryPath()
         }
     }
 
-    const auto executablePath = filesystem::FileSystemService::getExecutablePath();
+    const auto executablePath = filesystem_utils::getExecutablePath();
 
     if (executablePath.empty())
     {
@@ -42,7 +42,7 @@ std::filesystem::path ConfigDirectoryPathResolver::getConfigDirectoryPath()
                                 std::filesystem::path{*configDirectoryEnvPath}.lexically_normal().string() :
                                 "config";
 
-    const auto systemRootPath = filesystem::FileSystemService::getSystemRootPath();
+    const auto systemRootPath = filesystem_utils::getSystemRootPath();
 
     while (path.has_parent_path())
     {
@@ -61,8 +61,8 @@ std::filesystem::path ConfigDirectoryPathResolver::getConfigDirectoryPath()
 
         auto potentialConfigPath = path / pathSuffix;
 
-        if (filesystem::FileSystemService::exists(potentialConfigPath) &&
-            filesystem::FileSystemService::isDirectory(potentialConfigPath))
+        if (filesystem_utils::exists(potentialConfigPath) &&
+            filesystem_utils::isDirectory(potentialConfigPath))
         {
             return potentialConfigPath;
         }

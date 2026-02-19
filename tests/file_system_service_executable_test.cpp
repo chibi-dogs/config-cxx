@@ -3,7 +3,7 @@
 #include "gtest/gtest.h"
 
 using namespace ::testing;
-using namespace config::filesystem;
+using namespace config::filesystem_utils;
 
 namespace
 {
@@ -21,7 +21,7 @@ public:
 
 TEST_F(FileSystemServiceExecutableTest, shouldReturnAbsolutePathToTestExecutable)
 {
-    const auto executablePath = FileSystemService::getExecutablePath();
+    const auto executablePath = getExecutablePath();
 
     std::cerr << executablePath.string() << std::endl;
 
