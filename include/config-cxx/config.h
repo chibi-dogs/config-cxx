@@ -130,10 +130,7 @@ private:
     void log(LogLevel level, const std::string& message) const;
     std::string getSimilarKeys(const std::string& keyPath) const;
     std::string getTypeString(const ConfigValue& value) const;
-
-    bool initialized = false;
     LogCallback logCallback;
-
     std::unordered_map<std::string, ConfigValue> values;
     mutable std::mutex lock;
 };
