@@ -223,7 +223,7 @@ void Config::initialize()
     // Get the path to the configuration directory
     const auto configDirectory = ConfigDirectoryPathResolver::getConfigDirectoryPath();
 
-    // Check if the configuration directory is empty
+    // [FIXME] this just assumes that all the contents inside the config folder are regular files.
     bool isEmpty = true;
     for (const auto& entry : std::filesystem::directory_iterator(configDirectory))
     {
@@ -285,7 +285,7 @@ void Config::initialize()
             return std::ranges::distance(order.begin(), it1) < std::ranges::distance(order.begin(), it2);
         }
     };
-
+    //[FIXME] This for loop is quite similar to the check for regular files earlier.
     std::vector<std::filesystem::path> filePaths;
     for (const auto& entry : std::filesystem::directory_iterator(configDirectory))
     {
