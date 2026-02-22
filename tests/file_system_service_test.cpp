@@ -54,44 +54,36 @@ TEST_F(FileSystemServiceTest, givenIncorrectPath_shouldThrowException)
 
 TEST_F(FileSystemServiceTest, givenCorrectPath_shouldReturnTrue)
 {
-    const auto exists = exists(testDirectoryPath);
+    ASSERT_TRUE(config::filesystem_utils::exists(testDirectoryPath));
 
-    ASSERT_TRUE(exists);
 }
 
 TEST_F(FileSystemServiceTest, givenIncorrectPath_shouldReturnFalse)
 {
-    const auto exists = exists(invalidPath);
+    ASSERT_FALSE(config::filesystem_utils::exists(invalidPath));
 
-    ASSERT_FALSE(exists);
 }
 
 TEST_F(FileSystemServiceTest, givenDirectoryPath_shouldReturnTrue)
 {
-    const auto isDirectory = isDirectory(testDirectoryPath);
-
-    ASSERT_TRUE(isDirectory);
+    ASSERT_TRUE(isDirectory(testDirectoryPath));
 }
 
 TEST_F(FileSystemServiceTest, givenInvalidPath_shouldReturnFalse)
 {
-    const auto isDirectory = isDirectory(invalidPath);
+    ASSERT_FALSE(isDirectory(invalidPath));
 
-    ASSERT_FALSE(isDirectory);
 }
 
 TEST_F(FileSystemServiceTest, shouldReturnCurrentWorkingDirectory)
 {
-    const auto currentWorkingDirectory = getCurrentWorkingDirectory();
 
-    ASSERT_EQ(currentWorkingDirectory, std::filesystem::current_path());
+    ASSERT_EQ(getCurrentWorkingDirectory(), std::filesystem::current_path());
 }
 
 TEST_F(FileSystemServiceTest, givenFilePath_shouldReturnFalseForIsDirectory)
 {
-    const auto isDirectory = isDirectory(testReadingFilePath);
-
-    ASSERT_FALSE(isDirectory);
+    ASSERT_FALSE(isDirectory(testReadingFilePath));
 }
 
 TEST_F(FileSystemServiceTest, getSystemRootPath_returnsValidPath)
