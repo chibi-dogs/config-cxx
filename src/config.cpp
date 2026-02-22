@@ -258,11 +258,11 @@ void Config::initialize()
 
     auto customFileOrder = [order](const std::filesystem::path& path1, const std::filesystem::path& path2)
     {
-        auto filename1 = path1.stem().string();
-        auto filename2 = path2.stem().string();
+        const auto filename1 = path1.stem().string();
+        const auto filename2 = path2.stem().string();
 
-        auto it1 = std::find(order.begin(), order.end(), filename1);
-        auto it2 = std::find(order.begin(), order.end(), filename2);
+        const auto it1 = std::ranges::find(order, filename1);
+        const auto it2 = std::ranges::find(order, filename2);
 
         if (it1 == order.end() && it2 == order.end())
         {
@@ -282,7 +282,7 @@ void Config::initialize()
         else
         {
             // If both filenames are in the order list, order them based on their position in the list
-            return std::distance(order.begin(), it1) < std::distance(order.begin(), it2);
+            return std::ranges::distance(order.begin(), it1) < std::ranges::distance(order.begin(), it2);
         }
     };
 
@@ -296,7 +296,7 @@ void Config::initialize()
     }
 
     // Sort file paths according to custom order
-    std::sort(filePaths.begin(), filePaths.end(), customFileOrder);
+    std::ranges::sort(filePaths, customFileOrder);
 
     for (const auto& filePath : filePaths)
     {
