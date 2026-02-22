@@ -90,5 +90,9 @@ std::filesystem::path getExecutablePath()
     return std::filesystem::path{std::string(result, (count > 0) ? static_cast<unsigned long>(count) : 0)};
 #endif
 }
+bool is_directory_empty(const std::filesystem::path& p)
+{
+    return std::filesystem::is_directory(p) && std::filesystem::is_empty(p);
+}
 
 }

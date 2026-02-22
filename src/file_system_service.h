@@ -13,4 +13,5 @@ namespace config::filesystem_utils
     std::filesystem::path getSystemRootPath();
     std::filesystem::path getCurrentWorkingDirectory();
     std::filesystem::path getExecutablePath();
-};
+    bool is_directory_empty(const std::filesystem::path& p);
+    };

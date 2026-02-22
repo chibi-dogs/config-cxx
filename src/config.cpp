@@ -10,6 +10,7 @@
 #include "config_directory_path_resolver.h"
 #include "config_provider.h"
 #include "config_value.h"
+#include "file_system_service.h"
 #include "json_config_loader.h"
 #include "xml_config_loader.h"
 #include "yaml_config_loader.h"
@@ -220,22 +221,10 @@ void Config::initialize()
     // Find if no config warning is enabled or disabled
     const auto suppressWarning = std::getenv("SUPPRESS_NO_CONFIG_WARNING");
 
-    // Get the path to the configuration directory
     const auto configDirectory = ConfigDirectoryPathResolver::getConfigDirectoryPath();
 
-    // [FIXME] this just assumes that all the contents inside the config folder are regular files.
-    bool isEmpty = true;
-    for (const auto& entry : std::filesystem::directory_iterator(configDirectory))
-    {
-        if (entry.is_regular_file())
-        {
-            isEmpty = false;
-            break;
-        }
-    }
-
     // If the configuration directory is empty, log a message and return
-    if (isEmpty)
+    if (filesystem_utils::is_directory_empty(configDirectory))
     {
         if (suppressWarning == nullptr)
         {
