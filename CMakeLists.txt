@@ -28,6 +28,7 @@ set(SOURCES
     src/json_config_loader.cpp
     src/yaml_config_loader.cpp
     src/xml_config_loader.cpp
+    src/config_utils.h
 )
 
 add_library(${LIBRARY_NAME} ${SOURCES})
