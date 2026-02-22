@@ -59,3 +59,5 @@ endif ()
 if (CONFIG_BUILD_TESTING)
     add_subdirectory(tests)
 endif ()
+
+add_subdirectory(examples/project)
