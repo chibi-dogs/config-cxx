@@ -92,7 +92,8 @@ std::filesystem::path getExecutablePath()
 }
 bool is_directory_empty(const std::filesystem::path& p)
 {
-    return std::filesystem::is_directory(p) && std::filesystem::is_empty(p);
+    return  std::filesystem::is_directory(p) &&
+            std::filesystem::is_empty(p);
 }
 
 }

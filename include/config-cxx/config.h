@@ -1,5 +1,7 @@
 #pragma once
 
+#include <expected>
+#include <filesystem>
 #include <functional>
 #include <mutex>
 #include <optional>
@@ -123,7 +125,8 @@ public:
 
 private:
     std::vector<std::string> getArray(const std::string& keyPath);
-    void initialize();
+    bool createConfigFromFiles(std::string_view cxxEnv, const std::vector<std::filesystem::path>& filePaths);
+    std::expected<void, std::string> initialize();
     void log(LogLevel level, const std::string& message) const;
     std::string getSimilarKeys(const std::string& keyPath) const;
     std::string getTypeString(const ConfigValue& value) const;

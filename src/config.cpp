@@ -1,9 +1,11 @@
 #include "config-cxx/config.h"
 
 #include <algorithm>
+#include <expected>
 #include <filesystem>
 #include <iostream>
 #include <optional>
+#include <ranges>
 #include <stdexcept>
 #include <variant>
 
@@ -15,6 +17,66 @@
 #include "xml_config_loader.h"
 #include "yaml_config_loader.h"
 
+namespace
+{
+auto regular_file = [](const std::filesystem::path& path) {
+    return is_regular_file(path);
+};
+
+auto customFileOrder = [](const std::filesystem::path& path1, const std::filesystem::path& path2)
+{
+    const auto cxxEnv = config::environment::ConfigProvider::getCxxEnv();
+    std::vector<std::string> order = {"default", cxxEnv, "local", "local-" + cxxEnv, "custom-environment-variables"};
+    const auto filename1 = path1.stem().string();
+    const auto filename2 = path2.stem().string();
+
+    const auto it1 = std::ranges::find(order, filename1);
+    const auto it2 = std::ranges::find(order, filename2);
+
+    if (it1 == order.end() && it2 == order.end())
+    {
+        // If both filenames are not in the order list, order them alphabetically
+        return path1 < path2;
+    }
+    if (it1 == order.end())
+    {
+        // If only path1 is not in the order list, it comes after path2
+        return false;
+    }
+    if (it2 == order.end())
+    {
+        // If only path2 is not in the order list, it comes after path1
+        return true;
+    }
+        // If both filenames are in the order list, order them based on their position in the list
+    return std::ranges::distance(order.begin(), it1) < std::ranges::distance(order.begin(), it2);
+
+};
+std::expected<std::vector<std::filesystem::path>, std::string> createFilePaths(const std::filesystem::path& configFolder)
+{
+    const auto suppressWarning = std::getenv("SUPPRESS_NO_CONFIG_WARNING");
+    if (config::filesystem_utils::is_directory_empty(configFolder))
+    {
+        const auto emptyConfigErrormessage = "No configurations found in configuration directory.";
+        if (suppressWarning == nullptr)
+        {
+            // log this with a logger(LogLevel::Warning, "No configurations found in configuration directory.");
+        }
+        return std::unexpected(emptyConfigErrormessage);
+    }
+    std::vector<std::filesystem::path> filePaths =  std::filesystem::directory_iterator(configFolder) |
+                                                    std::views::filter(regular_file) |
+                                                    std::views::transform([](auto& entry){return entry.path();})|
+                                                    std::ranges::to<std::vector>();
+    std::ranges::sort(filePaths, customFileOrder);
+    if (filePaths.empty())
+    {
+        return std::unexpected("There is no configuration file found.");
+    }
+    return filePaths;
+}
+
+}
 namespace config
 {
 
@@ -22,11 +84,9 @@ template <typename T>
 T Config::get(const std::string& keyPath)
 {
     std::lock_guard<std::mutex> lockGuard(lock);
-
-    if (!initialized)
+    if (auto initializationResult = initialize(); !initializationResult)
     {
-        initialize();
-        initialized = true;
+        log(LogLevel::Error, std::format("Failed to initialize config due to", initializationResult.error()));
     }
 
     if constexpr (std::is_same_v<T, std::vector<std::string>>)
@@ -62,13 +122,12 @@ T Config::get(const std::string& keyPath)
     {
         return castedValue.value();
     }
-    else
-    {
-        std::string errorMsg = "Configuration key '" + keyPath + "' has wrong type. Expected: " + typeid(T).name() +
-                               ", Actual: " + getTypeString(value);
-        log(LogLevel::Error, errorMsg);
-        throw std::runtime_error(errorMsg);
-    }
+
+    std::string errorMsg = "Configuration key '" + keyPath + "' has wrong type. Expected: " + typeid(T).name() +
+                           ", Actual: " + getTypeString(value);
+    log(LogLevel::Error, errorMsg);
+    throw std::runtime_error(errorMsg);
+
 }
 
 template <typename T>
@@ -76,10 +135,9 @@ std::optional<T> Config::getOptional(const std::string& keyPath)
 {
     std::lock_guard<std::mutex> lockGuard(lock);
 
-    if (!initialized)
+    if (auto initializationResult = initialize(); !initializationResult)
     {
-        initialize();
-        initialized = true;
+        log(LogLevel::Error, std::format("Failed to initialize config due to", initializationResult.error()));
     }
 
     if constexpr (std::is_same_v<T, std::vector<std::string>>)
@@ -126,10 +184,9 @@ ConfigValue Config::get(const std::string& keyPath)
 {
     std::lock_guard<std::mutex> lockGuard(lock);
 
-    if (!initialized)
+    if (auto initializationResult = initialize(); !initializationResult)
     {
-        initialize();
-        initialized = true;
+        log(LogLevel::Error, std::format("Failed to initialize config due to", initializationResult.error()));
     }
 
     const auto keyOccurrences =
@@ -206,87 +263,17 @@ std::vector<std::string> Config::getArray(const std::string& keyPath)
 bool Config::has(const std::string& keyPath)
 {
     std::lock_guard<std::mutex> lockGuard(lock);
-
-    if (!initialized)
+    if (auto initializationResult = initialize(); !initializationResult)
     {
-        initialize();
-        initialized = true;
+        log(LogLevel::Error, std::format("Failed to initialize config due to", initializationResult.error()));
     }
 
     return values.find(keyPath) != values.end();
 }
 
-void Config::initialize()
+bool Config::createConfigFromFiles(std::string_view cxxEnv, const std::vector<std::filesystem::path>& filePaths)
 {
-    // Find if no config warning is enabled or disabled
-    const auto suppressWarning = std::getenv("SUPPRESS_NO_CONFIG_WARNING");
-
-    const auto configDirectory = ConfigDirectoryPathResolver::getConfigDirectoryPath();
-
-    // If the configuration directory is empty, log a message and return
-    if (filesystem_utils::is_directory_empty(configDirectory))
-    {
-        if (suppressWarning == nullptr)
-        {
-            log(LogLevel::Warning, "No configurations found in configuration directory.");
-        }
-        return;
-    }
-    const auto cxxEnv = environment::ConfigProvider::getCxxEnv();
-
-    log(LogLevel::Info, "Config directory: " + configDirectory.string() + " loaded.");
-
-    const auto strictMode = std::getenv("CXX_CONFIG_STRICT_MODE");
     bool foundCxxEnvFile = false;
-
-    if (strictMode != nullptr && (cxxEnv == "local" || cxxEnv == "default"))
-    {
-        throw std::runtime_error("ERROR: CXX_ENV must not be 'default' or 'local' under strict mode");
-    }
-    std::vector<std::string> order = {"default", cxxEnv, "local", "local-" + cxxEnv, "custom-environment-variables"};
-
-    auto customFileOrder = [order](const std::filesystem::path& path1, const std::filesystem::path& path2)
-    {
-        const auto filename1 = path1.stem().string();
-        const auto filename2 = path2.stem().string();
-
-        const auto it1 = std::ranges::find(order, filename1);
-        const auto it2 = std::ranges::find(order, filename2);
-
-        if (it1 == order.end() && it2 == order.end())
-        {
-            // If both filenames are not in the order list, order them alphabetically
-            return path1 < path2;
-        }
-        else if (it1 == order.end())
-        {
-            // If only path1 is not in the order list, it comes after path2
-            return false;
-        }
-        else if (it2 == order.end())
-        {
-            // If only path2 is not in the order list, it comes after path1
-            return true;
-        }
-        else
-        {
-            // If both filenames are in the order list, order them based on their position in the list
-            return std::ranges::distance(order.begin(), it1) < std::ranges::distance(order.begin(), it2);
-        }
-    };
-    //[FIXME] This for loop is quite similar to the check for regular files earlier.
-    std::vector<std::filesystem::path> filePaths;
-    for (const auto& entry : std::filesystem::directory_iterator(configDirectory))
-    {
-        if (entry.is_regular_file())
-        {
-            filePaths.push_back(entry.path());
-        }
-    }
-
-    // Sort file paths according to custom order
-    std::ranges::sort(filePaths, customFileOrder);
-
     for (const auto& filePath : filePaths)
     {
         if (filePath.extension() == ".json")
@@ -335,16 +322,43 @@ void Config::initialize()
             }
         }
     }
+    return foundCxxEnvFile;
+}
+
+
+std::expected<void, std::string> Config::initialize()
+{
+
+    const auto suppressWarning = std::getenv("SUPPRESS_NO_CONFIG_WARNING");
+
+    const auto cxxEnv = environment::ConfigProvider::getCxxEnv();
+    const auto strictMode = std::getenv("CXX_CONFIG_STRICT_MODE");
+    const auto configDirectory = ConfigDirectoryPathResolver::getConfigDirectoryPath();
+    const auto filePathsResult = createFilePaths(configDirectory);
+    if (!filePathsResult)
+    {
+        return std::unexpected("Config directory is empty or does not contain any valid files");
+    }
+    const auto result = createConfigFromFiles(cxxEnv, filePathsResult.value());
+
+    log(LogLevel::Info, "Config directory: " + configDirectory.string() + " loaded.");
+
+    if (!result && !cxxEnv.empty() && strictMode != nullptr)
+    {
+        return std::unexpected("ERROR: No configuration file matching CXX_ENV");
+    }
+
+    if (strictMode != nullptr && (cxxEnv == "local" || cxxEnv == "default"))
+    {
+        throw std::runtime_error("ERROR: CXX_ENV must not be 'default' or 'local' under strict mode");
+    }
 
     if (values.empty())
     {
-        throw std::runtime_error("Config values are empty.");
+        return std::unexpected("Config values are empty.");
     }
+    return {};
 
-    if (!foundCxxEnvFile && !cxxEnv.empty() && strictMode != nullptr)
-    {
-        throw std::runtime_error("ERROR: No configuration file matching CXX_ENV");
-    }
 }
 
 void Config::setLogCallback(LogCallback callback)
