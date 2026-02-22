@@ -30,9 +30,9 @@ public:
      *
      * @tparam T The target type of config value.
      *
-     * @param path The path to config key.
+     * @param keyPath
      *
-     * @return The value of config key casted to provided type.
+     * @return The value of config key cast to provided type.
      *
      * @code
      * Config().get<std::string>("db.host") // "localhost"
@@ -47,9 +47,9 @@ public:
      *
      * @tparam T The target type of config value.
      *
-     * @param path The path to config key.
+     * @param keyPath The path to config key.
      *
-     * @return The value of config key casted to provided type or std::nullopt.
+     * @return The value of config key cast to provided type or std::nullopt.
      *
      * @code
      * Config().getOptional<std::string>("db.host") // "localhost"
@@ -65,7 +65,7 @@ public:
      *
      * @tparam T The target type of config value.
      *
-     * @param path The path to config key.
+     * @param keyPath The path to config key.
      * @param defaultValue The default value to return if key doesn't exist.
      *
      * @return The value of config key or defaultValue if not found.
@@ -81,7 +81,7 @@ public:
     /**
      * @brief Get a config value by path.
      *
-     * @param path The path to config key.
+     * @param keyPath The path to config key.
      *
      * @return The value of config key.
      *
