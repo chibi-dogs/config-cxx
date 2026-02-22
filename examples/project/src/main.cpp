@@ -1,4 +1,4 @@
-#include "config-cxx/Config.h"
+#include <config-cxx/config.h>
 
 int main()
 {
