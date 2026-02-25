@@ -12,6 +12,7 @@ add_executable(tests
     file_system_service_executable_test.cpp
     environment_setter.cpp
     environment_setter_test.cpp
+    config_utils_test.cpp
 )
 
 target_link_libraries(tests
