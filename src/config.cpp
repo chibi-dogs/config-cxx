@@ -11,23 +11,25 @@
 
 #include "config_directory_path_resolver.h"
 #include "config_provider.h"
-#include "config_value.h"
 #include "config_utils.h"
+#include "config_value.h"
 #include "json_config_loader.h"
 #include "xml_config_loader.h"
 #include "yaml_config_loader.h"
-
+#include "ConsoleLogger.h"
 
 namespace config
 {
 
+Config::Config(std::shared_ptr<logger::ILogger> logger) : logger_(logger ? std::move(logger) : std::make_shared<logger::ConsoleLogger>()) {};
+
 template <typename T>
 T Config::get(const std::string& keyPath)
 {
-    std::lock_guard<std::mutex> lockGuard(lock);
+    std::lock_guard<std::mutex> lockGuard(lock_);
     if (auto initializationResult = initialize(); !initializationResult)
     {
-        log(LogLevel::Error, std::format("Failed to initialize config due to", initializationResult.error()));
+        logger_->log(logger::LogLevel::Error, std::format("Failed to initialize config due to", initializationResult.error()));
     }
 
     if constexpr (std::is_same_v<T, std::vector<std::string>>)
@@ -35,8 +37,8 @@ T Config::get(const std::string& keyPath)
         return getArray(keyPath);
     }
 
-    auto it = values.find(keyPath);
-    if (it == values.end())
+    auto it = values_.find(keyPath);
+    if (it == values_.end())
     {
         std::string errorMsg = "Configuration key '" + keyPath + "' not found.";
         std::string similar = getSimilarKeys(keyPath);
@@ -44,7 +46,7 @@ T Config::get(const std::string& keyPath)
         {
             errorMsg += " Did you mean: " + similar + "?";
         }
-        log(LogLevel::Error, errorMsg);
+        logger_->log(logger::LogLevel::Error, errorMsg);
         throw std::runtime_error(errorMsg);
     }
 
@@ -53,7 +55,7 @@ T Config::get(const std::string& keyPath)
     if (value.index() == 0)
     {
         std::string errorMsg = "Configuration key '" + keyPath + "' has null value.";
-        log(LogLevel::Error, errorMsg);
+        logger_->log(logger::LogLevel::Error, errorMsg);
         throw std::runtime_error(errorMsg);
     }
 
@@ -66,7 +68,7 @@ T Config::get(const std::string& keyPath)
 
     std::string errorMsg = "Configuration key '" + keyPath + "' has wrong type. Expected: " + typeid(T).name() +
                            ", Actual: " + getTypeString(value);
-    log(LogLevel::Error, errorMsg);
+    logger_->log(logger::LogLevel::Error, errorMsg);
     throw std::runtime_error(errorMsg);
 
 }
@@ -74,11 +76,11 @@ T Config::get(const std::string& keyPath)
 template <typename T>
 std::optional<T> Config::getOptional(const std::string& keyPath)
 {
-    std::lock_guard<std::mutex> lockGuard(lock);
+    std::lock_guard<std::mutex> lockGuard(lock_);
 
     if (auto initializationResult = initialize(); !initializationResult)
     {
-        log(LogLevel::Error, std::format("Failed to initialize config due to", initializationResult.error()));
+        logger_->log(logger::LogLevel::Error, std::format("Failed to initialize config due to", initializationResult.error()));
     }
 
     if constexpr (std::is_same_v<T, std::vector<std::string>>)
@@ -86,8 +88,8 @@ std::optional<T> Config::getOptional(const std::string& keyPath)
         return getArray(keyPath);
     }
 
-    auto it = values.find(keyPath);
-    if (it == values.end())
+    auto it = values_.find(keyPath);
+    if (it == values_.end())
     {
         return std::nullopt;
     }
@@ -109,7 +111,7 @@ std::optional<T> Config::getOptional(const std::string& keyPath)
     {
         std::string errorMsg = "Configuration key '" + keyPath + "' has wrong type. Expected: " + typeid(T).name() +
                                ", Actual: " + getTypeString(value);
-        log(LogLevel::Error, errorMsg);
+        logger_->log(logger::LogLevel::Error, errorMsg);
         throw std::runtime_error(errorMsg);
     }
 }
@@ -123,15 +125,15 @@ T Config::getOrDefault(const std::string& keyPath, T defaultValue)
 
 ConfigValue Config::get(const std::string& keyPath)
 {
-    std::lock_guard<std::mutex> lockGuard(lock);
+    std::lock_guard<std::mutex> lockGuard(lock_);
 
     if (auto initializationResult = initialize(); !initializationResult)
     {
-        log(LogLevel::Error, std::format("Failed to initialize config due to", initializationResult.error()));
+        logger_->log(logger::LogLevel::Error, std::format("Failed to initialize config due to", initializationResult.error()));
     }
 
     const auto keyOccurrences =
-        std::count_if(values.begin(), values.end(),
+        std::count_if(values_.begin(), values_.end(),
                       [&keyPath](const auto& value)
                       {
                           const auto& key = value.first;
@@ -148,7 +150,7 @@ ConfigValue Config::get(const std::string& keyPath)
         {
             errorMsg += " Did you mean: " + similar + "?";
         }
-        log(LogLevel::Error, errorMsg);
+        logger_->log(logger::LogLevel::Error, errorMsg);
         throw std::runtime_error(errorMsg);
     }
 
@@ -157,14 +159,14 @@ ConfigValue Config::get(const std::string& keyPath)
         return getArray(keyPath);
     }
 
-    return values[keyPath];
+    return values_[keyPath];
 }
 
 std::vector<std::string> Config::getArray(const std::string& keyPath)
 {
     std::vector<std::string> result;
 
-    for (const auto& pair : values)
+    for (const auto& pair : values_)
     {
         const std::string& key = pair.first;
         const ConfigValue& value = pair.second;
@@ -179,8 +181,8 @@ std::vector<std::string> Config::getArray(const std::string& keyPath)
             }
             else
             {
-                std::string errorMsg = "Configuration key '" + keyPath + "' array element has wrong type.";
-                log(LogLevel::Error, errorMsg);
+                const std::string errorMsg = "Configuration key '" + keyPath + "' array element has wrong type.";
+                logger_->log(logger::LogLevel::Error, errorMsg);
                 throw std::runtime_error(errorMsg);
             }
         }
@@ -194,7 +196,7 @@ std::vector<std::string> Config::getArray(const std::string& keyPath)
         {
             errorMsg += " Did you mean: " + similar + "?";
         }
-        log(LogLevel::Error, errorMsg);
+        logger_->log(logger::LogLevel::Error, errorMsg);
         throw std::runtime_error(errorMsg);
     }
 
@@ -203,17 +205,18 @@ std::vector<std::string> Config::getArray(const std::string& keyPath)
 
 bool Config::has(const std::string& keyPath)
 {
-    std::lock_guard<std::mutex> lockGuard(lock);
+    std::lock_guard<std::mutex> lockGuard(lock_);
     if (auto initializationResult = initialize(); !initializationResult)
     {
-        log(LogLevel::Error, std::format("Failed to initialize config due to", initializationResult.error()));
+        logger_->log(logger::LogLevel::Error, std::format("Failed to initialize config due to", initializationResult.error()));
     }
 
-    return values.find(keyPath) != values.end();
+    return values_.find(keyPath) != values_.end();
 }
 
-bool Config::createConfigFromFiles(std::string_view cxxEnv, const std::vector<std::filesystem::path>& filePaths)
+std::expected<bool, std::string> Config::createConfigFromFiles(const std::vector<std::filesystem::path>& filePaths)
 {
+    const auto cxxEnv = environment::ConfigProvider::getCxxEnv();
     bool foundCxxEnvFile = false;
     for (const auto& filePath : filePaths)
     {
@@ -221,7 +224,7 @@ bool Config::createConfigFromFiles(std::string_view cxxEnv, const std::vector<st
         {
             if (filePath.string().find("environment") != std::string::npos)
             {
-                JsonConfigLoader::loadConfigEnvFile(filePath, values);
+                JsonConfigLoader::loadConfigEnvFile(filePath, values_);
                 if (filePath.stem().string() == cxxEnv)
                 {
                     foundCxxEnvFile = true;
@@ -229,14 +232,14 @@ bool Config::createConfigFromFiles(std::string_view cxxEnv, const std::vector<st
             }
             else
             {
-                JsonConfigLoader::loadConfigFile(filePath, values);
+                JsonConfigLoader::loadConfigFile(filePath, values_);
             }
         }
         else if (filePath.extension() == ".yaml" || filePath.extension() == ".yml")
         {
             if (filePath.string().find("environment") != std::string::npos)
             {
-                YamlConfigLoader::loadConfigEnvFile(filePath, values);
+                YamlConfigLoader::loadConfigEnvFile(filePath, values_);
                 if (filePath.stem().string() == cxxEnv)
                 {
                     foundCxxEnvFile = true;
@@ -244,14 +247,14 @@ bool Config::createConfigFromFiles(std::string_view cxxEnv, const std::vector<st
             }
             else
             {
-                YamlConfigLoader::loadConfigFile(filePath, values);
+                YamlConfigLoader::loadConfigFile(filePath, values_);
             }
         }
         else if (filePath.extension() == ".xml")
         {
             if (filePath.string().find("environment") != std::string::npos)
             {
-                XmlConfigLoader::loadConfigEnvFile(filePath, values);
+                XmlConfigLoader::loadConfigEnvFile(filePath, values_);
                 if (filePath.stem().string() == cxxEnv)
                 {
                     foundCxxEnvFile = true;
@@ -259,9 +262,13 @@ bool Config::createConfigFromFiles(std::string_view cxxEnv, const std::vector<st
             }
             else
             {
-                XmlConfigLoader::loadConfigFile(filePath, values);
+                XmlConfigLoader::loadConfigFile(filePath, values_);
             }
         }
+    }
+    if (values_.empty())
+    {
+        return std::unexpected("Config values are empty.");
     }
     return foundCxxEnvFile;
 }
@@ -269,9 +276,6 @@ bool Config::createConfigFromFiles(std::string_view cxxEnv, const std::vector<st
 
 std::expected<void, std::string> Config::initialize()
 {
-
-    const auto suppressWarning = std::getenv("SUPPRESS_NO_CONFIG_WARNING");
-
     const auto cxxEnv = environment::ConfigProvider::getCxxEnv();
     const auto strictMode = std::getenv("CXX_CONFIG_STRICT_MODE");
     const auto configDirectory = ConfigDirectoryPathResolver::getConfigDirectoryPath();
@@ -280,9 +284,9 @@ std::expected<void, std::string> Config::initialize()
     {
         return std::unexpected("Config directory is empty or does not contain any valid files");
     }
-    const auto result = createConfigFromFiles(cxxEnv, filePathsResult.value());
+    const auto result = createConfigFromFiles(filePathsResult.value());
 
-    log(LogLevel::Info, "Config directory: " + configDirectory.string() + " loaded.");
+    logger_->log(logger::LogLevel::Info , "Config directory: " + configDirectory.string() + " loaded.");
 
     if (!result && !cxxEnv.empty() && strictMode != nullptr)
     {
@@ -294,50 +298,16 @@ std::expected<void, std::string> Config::initialize()
         throw std::runtime_error("ERROR: CXX_ENV must not be 'default' or 'local' under strict mode");
     }
 
-    if (values.empty())
-    {
-        return std::unexpected("Config values are empty.");
-    }
     return {};
 
 }
 
-void Config::setLogCallback(LogCallback callback)
-{
-    std::lock_guard<std::mutex> lockGuard(lock);
-    logCallback = std::move(callback);
-}
-
-void Config::log(LogLevel level, const std::string& message) const
-{
-    if (logCallback)
-    {
-        logCallback(level, message);
-    }
-    else
-    {
-        // Default logging to stderr for errors and warnings
-        switch (level)
-        {
-        case LogLevel::Error:
-            std::cerr << "[CONFIG ERROR] " << message << std::endl;
-            break;
-        case LogLevel::Warning:
-            std::cerr << "[CONFIG WARNING] " << message << std::endl;
-            break;
-        case LogLevel::Info:
-        case LogLevel::Debug:
-            // Silent by default for info/debug to avoid clutter
-            break;
-        }
-    }
-}
 
 std::string Config::getSimilarKeys(const std::string& keyPath) const
 {
     std::vector<std::pair<std::string, int>> similarities;
 
-    for (const auto& [key, _] : values)
+    for (const auto& [key, _] : values_)
     {
         // Simple Levenshtein-like similarity check
         int distance = 0;

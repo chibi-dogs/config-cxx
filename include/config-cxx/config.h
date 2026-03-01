@@ -1,5 +1,6 @@
 #pragma once
 
+#include <config-cxx/ILogger.h>
 #include <expected>
 #include <filesystem>
 #include <functional>
@@ -14,19 +15,10 @@ namespace config
 {
 using ConfigValue = std::variant<std::nullptr_t, bool, int, double, std::string, float, std::vector<std::string>>;
 
-enum class LogLevel
-{
-    Debug,
-    Info,
-    Warning,
-    Error
-};
-
-using LogCallback = std::function<void(LogLevel, const std::string&)>;
-
 class Config
 {
 public:
+    explicit Config(std::shared_ptr<logger::ILogger> logger =  nullptr);
     /**
      * @brief Get a config value by path.
      *
@@ -108,30 +100,14 @@ public:
      */
     bool has(const std::string& keyPath);
 
-    /**
-     * @brief Set a logging callback for config operations.
-     *
-     * @param callback Function to call for log messages.
-     *
-     * @code
-     * config.setLogCallback([](LogLevel level, const std::string& msg) {
-     *     if (level == LogLevel::Error) {
-     *         std::cerr << "[ERROR] " << msg << std::endl;
-     *     }
-     * });
-     * @endcode
-     */
-    void setLogCallback(LogCallback callback);
-
 private:
     std::vector<std::string> getArray(const std::string& keyPath);
-    bool createConfigFromFiles(std::string_view cxxEnv, const std::vector<std::filesystem::path>& filePaths);
+    std::expected<bool, std::string> createConfigFromFiles(const std::vector<std::filesystem::path>& filePaths);
     std::expected<void, std::string> initialize();
-    void log(LogLevel level, const std::string& message) const;
     std::string getSimilarKeys(const std::string& keyPath) const;
     std::string getTypeString(const ConfigValue& value) const;
-    LogCallback logCallback;
-    std::unordered_map<std::string, ConfigValue> values;
-    mutable std::mutex lock;
+    std::unordered_map<std::string, ConfigValue> values_;
+    mutable std::mutex lock_;
+    std::shared_ptr<logger::ILogger> logger_;
 };
 }
