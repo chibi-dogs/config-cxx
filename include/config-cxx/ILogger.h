@@ -17,6 +17,21 @@ class ILogger
     public:
     virtual ~ILogger() = default;
     virtual void log(const LogLevel& level, std::string_view message) const = 0;
+    void debug(std::string_view message) {
+        log(LogLevel::Debug, message);
+    }
+
+    void info(std::string_view message) {
+        log(LogLevel::Info, message);
+    }
+
+    void warning(std::string_view message) {
+        log(LogLevel::Warning, message);
+    }
+
+    void error(std::string_view message) {
+        log(LogLevel::Error, message);
+    }
 };
 
 }

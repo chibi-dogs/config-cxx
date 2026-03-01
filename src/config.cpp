@@ -18,10 +18,12 @@
 #include "yaml_config_loader.h"
 #include "ConsoleLogger.h"
 
+using namespace config::logger;
+
 namespace config
 {
 
-Config::Config(std::shared_ptr<logger::ILogger> logger) : logger_(logger ? std::move(logger) : std::make_shared<logger::ConsoleLogger>()) {};
+Config::Config(std::shared_ptr<ILogger> logger) : m_logger(logger ? std::move(logger) : std::make_shared<ConsoleLogger>()) {};
 
 template <typename T>
 T Config::get(const std::string& keyPath)
@@ -29,7 +31,7 @@ T Config::get(const std::string& keyPath)
     std::lock_guard<std::mutex> lockGuard(lock_);
     if (auto initializationResult = initialize(); !initializationResult)
     {
-        logger_->log(logger::LogLevel::Error, std::format("Failed to initialize config due to", initializationResult.error()));
+        m_logger->error(std::format("Failed to initialize config due to", initializationResult.error()));
     }
 
     if constexpr (std::is_same_v<T, std::vector<std::string>>)
@@ -46,7 +48,7 @@ T Config::get(const std::string& keyPath)
         {
             errorMsg += " Did you mean: " + similar + "?";
         }
-        logger_->log(logger::LogLevel::Error, errorMsg);
+        m_logger->error(errorMsg);
         throw std::runtime_error(errorMsg);
     }
 
@@ -54,8 +56,8 @@ T Config::get(const std::string& keyPath)
 
     if (value.index() == 0)
     {
-        std::string errorMsg = "Configuration key '" + keyPath + "' has null value.";
-        logger_->log(logger::LogLevel::Error, errorMsg);
+        std::string errorMsg = std::format("Configuration key {} has null value.", keyPath);
+        m_logger->error(errorMsg);
         throw std::runtime_error(errorMsg);
     }
 
@@ -66,9 +68,8 @@ T Config::get(const std::string& keyPath)
         return castedValue.value();
     }
 
-    std::string errorMsg = "Configuration key '" + keyPath + "' has wrong type. Expected: " + typeid(T).name() +
-                           ", Actual: " + getTypeString(value);
-    logger_->log(logger::LogLevel::Error, errorMsg);
+    const std::string errorMsg = std::format("Configuration key {} has wrong type. Expected: {} Actual: {}", keyPath, typeid(T).name(), getTypeString(value));
+    m_logger->error(errorMsg);
     throw std::runtime_error(errorMsg);
 
 }
@@ -80,7 +81,7 @@ std::optional<T> Config::getOptional(const std::string& keyPath)
 
     if (auto initializationResult = initialize(); !initializationResult)
     {
-        logger_->log(logger::LogLevel::Error, std::format("Failed to initialize config due to", initializationResult.error()));
+        m_logger->error(std::format("Failed to initialize config due to", initializationResult.error()));
     }
 
     if constexpr (std::is_same_v<T, std::vector<std::string>>)
@@ -107,13 +108,11 @@ std::optional<T> Config::getOptional(const std::string& keyPath)
     {
         return castedValue.value();
     }
-    else
-    {
-        std::string errorMsg = "Configuration key '" + keyPath + "' has wrong type. Expected: " + typeid(T).name() +
-                               ", Actual: " + getTypeString(value);
-        logger_->log(logger::LogLevel::Error, errorMsg);
-        throw std::runtime_error(errorMsg);
-    }
+
+    const std::string errorMsg = std::format("Configuration key {} has wrong type. Expected: {} Actual: {}", keyPath, typeid(T).name(), getTypeString(value));
+    m_logger->error(errorMsg);
+    throw std::runtime_error(errorMsg);
+
 }
 
 template <typename T>
@@ -129,7 +128,7 @@ ConfigValue Config::get(const std::string& keyPath)
 
     if (auto initializationResult = initialize(); !initializationResult)
     {
-        logger_->log(logger::LogLevel::Error, std::format("Failed to initialize config due to", initializationResult.error()));
+        m_logger->error(std::format("Failed to initialize config due to", initializationResult.error()));
     }
 
     const auto keyOccurrences =
@@ -150,7 +149,7 @@ ConfigValue Config::get(const std::string& keyPath)
         {
             errorMsg += " Did you mean: " + similar + "?";
         }
-        logger_->log(logger::LogLevel::Error, errorMsg);
+        m_logger->error(errorMsg);
         throw std::runtime_error(errorMsg);
     }
 
@@ -181,8 +180,8 @@ std::vector<std::string> Config::getArray(const std::string& keyPath)
             }
             else
             {
-                const std::string errorMsg = "Configuration key '" + keyPath + "' array element has wrong type.";
-                logger_->log(logger::LogLevel::Error, errorMsg);
+                const std::string errorMsg = std::format("Configuration key {} array element has wrong type.", keyPath);
+                m_logger->error(errorMsg);
                 throw std::runtime_error(errorMsg);
             }
         }
@@ -196,7 +195,7 @@ std::vector<std::string> Config::getArray(const std::string& keyPath)
         {
             errorMsg += " Did you mean: " + similar + "?";
         }
-        logger_->log(logger::LogLevel::Error, errorMsg);
+        m_logger->error(errorMsg);
         throw std::runtime_error(errorMsg);
     }
 
@@ -208,7 +207,7 @@ bool Config::has(const std::string& keyPath)
     std::lock_guard<std::mutex> lockGuard(lock_);
     if (auto initializationResult = initialize(); !initializationResult)
     {
-        logger_->log(logger::LogLevel::Error, std::format("Failed to initialize config due to", initializationResult.error()));
+        m_logger->error(std::format("Failed to initialize config due to", initializationResult.error()));
     }
 
     return values_.find(keyPath) != values_.end();
@@ -286,7 +285,7 @@ std::expected<void, std::string> Config::initialize()
     }
     const auto result = createConfigFromFiles(filePathsResult.value());
 
-    logger_->log(logger::LogLevel::Info , "Config directory: " + configDirectory.string() + " loaded.");
+    m_logger->info( std::format("Config directory: {} loaded.", configDirectory.string()));
 
     if (!result && !cxxEnv.empty() && strictMode != nullptr)
     {

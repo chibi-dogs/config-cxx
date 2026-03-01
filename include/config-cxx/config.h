@@ -107,6 +107,6 @@ private:
     std::string getTypeString(const ConfigValue& value) const;
     std::unordered_map<std::string, ConfigValue> values_;
     mutable std::mutex lock_;
-    std::shared_ptr<logger::ILogger> logger_;
+    std::shared_ptr<logger::ILogger> m_logger;
 };
 }
