@@ -29,6 +29,9 @@ set(SOURCES
     src/yaml_config_loader.cpp
     src/xml_config_loader.cpp
     src/config_utils.h
+    src/config_utils_refactored.h
+    src/ConsoleLogger.h
+    src/ConsoleLogger.cpp
 )
 
 add_library(${LIBRARY_NAME} ${SOURCES})
