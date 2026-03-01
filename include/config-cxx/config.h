@@ -3,7 +3,6 @@
 #include <config-cxx/ILogger.h>
 #include <expected>
 #include <filesystem>
-#include <functional>
 #include <mutex>
 #include <optional>
 #include <string>
