@@ -1,6 +1,7 @@
 #ifndef CONFIG_CXX_CONFIG_UTILS_REFACTORED_H
 #define CONFIG_CXX_CONFIG_UTILS_REFACTORED_H
 
+#include <algorithm>
 #include <expected>
 #include <filesystem>
 #include <functional>
@@ -12,19 +13,16 @@
 namespace config::utils
 {
 
-// Type aliases for better testability
 using FileFilter = std::function<bool(const std::filesystem::path&)>;
 using FileComparator = std::function<bool(const std::filesystem::path&, const std::filesystem::path&)>;
 using DirectoryReader = std::function<std::vector<std::filesystem::path>(const std::filesystem::path&)>;
 using EmptyDirChecker = std::function<bool(const std::filesystem::path&)>;
 
-// Pure function: doesn't depend on any global state or filesystem
 inline std::vector<std::string> getFileOrder(const std::string& cxxEnv)
 {
     return {"default", cxxEnv, "local", "local-" + cxxEnv, "custom-environment-variables"};
 }
 
-// Pure function: testable without filesystem
 inline bool compareByCustomOrder(
     const std::filesystem::path& path1,
     const std::filesystem::path& path2,
@@ -55,7 +53,6 @@ inline bool compareByCustomOrder(
     return std::ranges::distance(order.begin(), it1) < std::ranges::distance(order.begin(), it2);
 }
 
-// Core business logic: testable with injected dependencies
 inline std::expected<std::vector<std::filesystem::path>, std::string> createFilePathsWithDeps(
     const std::filesystem::path& configFolder,
     const std::string& cxxEnv,
@@ -66,7 +63,7 @@ inline std::expected<std::vector<std::filesystem::path>, std::string> createFile
 {
     if (isEmptyChecker(configFolder))
     {
-        const auto emptyConfigErrorMessage = "No configurations found in configuration directory.";
+        constexpr auto emptyConfigErrorMessage = "No configurations found in configuration directory.";
         if (!suppressWarning)
         {
             // log this with a logger(LogLevel::Warning, "No configurations found in configuration directory.");
@@ -76,11 +73,9 @@ inline std::expected<std::vector<std::filesystem::path>, std::string> createFile
 
     std::vector<std::filesystem::path> filePaths = dirReader(configFolder);
 
-    // Filter regular files
     std::vector<std::filesystem::path> regularFiles;
     std::ranges::copy_if(filePaths, std::back_inserter(regularFiles), fileFilter);
 
-    // Sort by custom order
     const auto order = getFileOrder(cxxEnv);
     std::ranges::sort(regularFiles, [&order](const auto& p1, const auto& p2) {
         return compareByCustomOrder(p1, p2, order);
@@ -94,7 +89,7 @@ inline std::expected<std::vector<std::filesystem::path>, std::string> createFile
     return regularFiles;
 }
 
-// Default implementations of dependencies
+
 inline bool defaultIsDirectoryEmpty(const std::filesystem::path& p)
 {
     return filesystem_utils::is_directory_empty(p);
@@ -115,7 +110,6 @@ inline bool defaultFileFilter(const std::filesystem::path& path)
     return is_regular_file(path);
 }
 
-// Production version with real dependencies
 inline std::expected<std::vector<std::filesystem::path>, std::string> createFilePaths(
     const std::filesystem::path& configFolder)
 {
@@ -132,7 +126,6 @@ inline std::expected<std::vector<std::filesystem::path>, std::string> createFile
     );
 }
 
-// Legacy inline functions for backward compatibility
 inline auto regular_file = [](const std::filesystem::path& path) {
     return is_regular_file(path);
 };

@@ -43,7 +43,7 @@ TEST_F(ConfigUtilsTest, getFileOrder_withDevelopmentEnv_returnsCorrectOrder)
 {
     const auto order = getFileOrder("development");
 
-    std::vector<std::string> expected = {"default", "development", "local", "local-development", "custom-environment-variables"};
+    const std::vector<std::string> expected = {"default", "development", "local", "local-development", "custom-environment-variables"};
 
     ASSERT_EQ(order, expected);
 }
